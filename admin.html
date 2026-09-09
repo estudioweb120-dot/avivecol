@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel AVIVECOL</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --blue:#1B3A6B; --blue-deep:#132A4E; --gold:#F2B705; --green:#3B8C4A; --red:#C8362C;
+    --cream:#FAF8F4; --panel:#F1ECE0; --ink:#2A2A28; --muted:#6B6A63; --line:rgba(27,58,107,0.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--cream);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;min-height:100vh;}
+  h1,h2,h3,.serif{font-family:'Nunito',sans-serif;font-weight:800;color:var(--blue-deep);}
+  a{color:inherit;}
+
+  #loginView{max-width:380px;margin:90px auto 0;padding:0 20px;}
+  #loginView h1{font-size:24px;margin-bottom:8px;}
+  #loginView p{color:var(--muted);font-size:14px;margin-bottom:28px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px;}
+  .field input,.field select,.field textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:22px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;font-family:'Nunito',sans-serif;}
+  .btn-block{width:100%;}
+  .btn-blue{background:var(--blue);color:#fff;} .btn-blue:hover{background:var(--blue-deep);}
+  .btn-gold{background:var(--gold);color:var(--blue-deep);}
+  .btn-outline{background:transparent;border:1.5px solid var(--blue);color:var(--blue);}
+  .btn-outline:hover{background:var(--blue);color:#fff;}
+  .btn-danger{background:#fff;border:1.5px solid var(--red);color:var(--red);}
+  .btn-danger:hover{background:var(--red);color:#fff;}
+  .btn:disabled{opacity:.5;cursor:default;}
+  #loginError{color:var(--red);font-size:13px;margin-top:14px;display:none;}
+
+  #appShell{display:none;min-height:100vh;}
+  .app-layout{display:flex;min-height:100vh;}
+  .sidebar{width:230px;flex-shrink:0;background:var(--blue-deep);color:#fff;padding:24px 16px;position:fixed;top:0;bottom:0;overflow-y:auto;}
+  .sidebar .brand{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;margin-bottom:4px;}
+  .sidebar .brand span{display:block;font-size:10px;font-weight:600;letter-spacing:.05em;color:#9AB0D6;text-transform:uppercase;margin-top:2px;}
+  .sidebar nav{margin-top:30px;display:flex;flex-direction:column;gap:4px;}
+  .sidebar nav button{text-align:left;background:none;border:none;color:#C9D5E8;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:10px;}
+  .sidebar nav button:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .sidebar nav button.active{background:var(--gold);color:var(--blue-deep);}
+  .sidebar .logout-wrap{margin-top:30px;padding-top:20px;border-top:1px solid rgba(255,255,255,.12);}
+  .sidebar .logout-wrap button{width:100%;background:none;border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:10px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;}
+
+  .main{margin-left:230px;flex:1;padding:34px 40px 80px;max-width:1100px;}
+  @media(max-width:860px){
+    .sidebar{position:static;width:100%;padding:16px;}
+    .app-layout{flex-direction:column;}
+    .main{margin-left:0;padding:24px 18px 60px;}
+    .sidebar nav{flex-direction:row;flex-wrap:wrap;margin-top:14px;}
+  }
+
+  .view{display:none;}
+  .view.active{display:block;}
+  .view-head{margin-bottom:26px;}
+  .view-head h2{font-size:22px;}
+  .view-head p{color:var(--muted);font-size:13.5px;margin-top:4px;}
+
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:30px;}
+  .stat-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;}
+  .stat-card .num{font-family:'Nunito',sans-serif;font-weight:800;font-size:30px;color:var(--blue-deep);}
+  .stat-card .lbl{font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .breakdown{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px;}
+  .breakdown h3{font-size:14px;margin-bottom:14px;}
+  .breakdown-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+  .breakdown-row:last-child{border-bottom:none;}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:14px;}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap;}
+  .card-head h3{font-size:16px;color:var(--blue-deep);}
+  .card-head .date{font-size:12px;color:var(--muted);}
+  .badge{font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+  .badge.pendiente{background:#FCEBCB;color:#8A5A00;}
+  .badge.en-seguimiento{background:#DCE7F5;color:var(--blue);}
+  .badge.en-espera{background:#EDEAE0;color:var(--muted);}
+  .badge.aceptado,.badge.contactado,.badge.publicado{background:#E1F0E3;color:#256135;}
+  .badge.rechazado{background:#FBE1DE;color:var(--red);}
+  .badge.nuevo{background:#FCEBCB;color:#8A5A00;}
+  .badge.planeado{background:#DCE7F5;color:var(--blue);}
+  .badge.en-curso{background:#FCEBCB;color:#8A5A00;}
+  .badge.finalizado{background:#E1F0E3;color:#256135;}
+  .badge.borrador{background:#EDEAE0;color:var(--muted);}
+
+  .detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 20px;font-size:13.5px;margin-bottom:12px;}
+  @media(max-width:600px){.detail-grid{grid-template-columns:1fr;}}
+  .detail-grid div{padding:8px 0;border-bottom:1px dashed var(--line);}
+  .detail-grid .lbl{color:var(--muted);font-weight:600;display:block;font-size:11px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px;}
+  .msg-box{background:var(--panel);border-radius:10px;padding:14px;font-size:13.5px;margin-top:8px;}
+
+  .action-row{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap;}
+  .action-row select{padding:8px 12px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;font-family:inherit;}
+
+  .empty{text-align:center;color:var(--muted);padding:40px 0;font-size:14px;}
+
+  .form-card{background:#fff;border:1.5px dashed var(--line);border-radius:14px;padding:22px;margin-bottom:26px;}
+  .form-card h3{font-size:15px;margin-bottom:16px;}
+  .form-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:600px){.form-row2{grid-template-columns:1fr;}}
+  .thumb{width:100%;height:130px;object-fit:cover;border-radius:10px;background:var(--panel);margin-bottom:10px;}
+  .file-drop{border:1px dashed var(--line);border-radius:10px;padding:14px;text-align:center;font-size:12.5px;color:var(--muted);cursor:pointer;background:var(--panel);}
+
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--blue-deep);color:#fff;padding:12px 22px;border-radius:24px;font-size:13.5px;font-weight:600;display:none;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.2);}
+</style>
+</head>
+<body>
+
+<div id="loginView">
+  <h1>Panel AVIVECOL</h1>
+  <p>Inicia sesión para gestionar el contenido de la página web.</p>
+  <form id="loginForm">
+    <div class="field"><label>Correo</label><input type="email" id="loginEmail" required autocomplete="username"></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="loginPassword" required autocomplete="current-password"></div>
+    <button type="submit" class="btn btn-blue btn-block" id="loginBtn">Entrar</button>
+  </form>
+  <p id="loginError">Correo o contraseña incorrectos.</p>
+</div>
+
+<div id="appShell">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">AVIVECOL<span>Panel de gestión</span></div>
+      <nav id="sideNav">
+        <button data-view="resumen" class="active">📊 Resumen</button>
+        <button data-view="vinculacion">🤝 Vinculación</button>
+        <button data-view="mensajes">✉️ Mensajes</button>
+        <button data-view="proyectos">📁 Proyectos</button>
+        <button data-view="actualidad">📰 Actualidad</button>
+        <button data-view="organizaciones">🏛️ Organizaciones</button>
+        <button data-view="galeria">🖼️ Galería</button>
+      </nav>
+      <div class="logout-wrap"><button id="logoutBtn">Cerrar sesión</button></div>
+    </aside>
+
+    <main class="main">
+
+      <div class="view active" id="view-resumen">
+        <div class="view-head"><h2>Resumen general</h2><p>Un vistazo rápido a todo lo que pasa en el sitio.</p></div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="breakdown" id="breakdownVinculacion"><h3>Solicitudes de vinculación por estado</h3></div>
+        <div class="breakdown" id="breakdownMensajes"><h3>Mensajes por estado</h3></div>
+      </div>
+
+      <div class="view" id="view-vinculacion">
+        <div class="view-head"><h2>Solicitudes de vinculación</h2><p>Gestiona las solicitudes que llegan desde el formulario "Afiliarme".</p></div>
+        <div id="listVinculacion"></div>
+      </div>
+
+      <div class="view" id="view-mensajes">
+        <div class="view-head"><h2>Mensajes de contacto</h2><p>Mensajes enviados desde el formulario de Contacto.</p></div>
+        <div id="listMensajes"></div>
+      </div>
+
+      <div class="view" id="view-proyectos">
+        <div class="view-head"><h2>Proyectos</h2><p>Crea, edita y elimina los proyectos que se muestran en la página.</p></div>
+        <div id="formProyectos"></div>
+        <div id="listProyectos"></div>
+      </div>
+
+      <div class="view" id="view-actualidad">
+        <div class="view-head"><h2>Actualidad</h2><p>Publica noticias, jornadas, eventos y comunicados.</p></div>
+        <div id="formActualidad"></div>
+        <div id="listActualidad"></div>
+      </div>
+
+      <div class="view" id="view-organizaciones">
+        <div class="view-head"><h2>Organizaciones vinculadas</h2><p>Organizaciones aliadas que se muestran en la página.</p></div>
+        <div id="formOrganizaciones"></div>
+        <div id="listOrganizaciones"></div>
+      </div>
+
+      <div class="view" id="view-galeria">
+        <div class="view-head"><h2>Galería</h2><p>Sube y organiza las fotos generales de la página.</p></div>
+        <div class="form-card">
+          <h3>Subir fotos</h3>
+          <div class="file-drop" id="galeriaDropzone">Haz clic o arrastra imágenes aquí</div>
+          <input type="file" id="galeriaFileInput" accept="image/*" multiple style="display:none;">
+        </div>
+        <div class="stats-grid" id="galeriaGrid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://jkhnhpljnkltyzpbwebg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpraG5ocGxqbmtsdHl6cGJ3ZWJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNjIwNzcsImV4cCI6MjEwMjYzODA3N30.Pr5huTX-889fB9mvMui3LkUVj0ZL7cNPO7WyjkitenY";
+const GALLERY_BUCKET = "galeria-avivecol";
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2600);
+}
+function slug(s){ return (s||'').toLowerCase().replace(/\s+/g,'-'); }
+function fmtDate(d){ if(!d) return '—'; return new Date(d).toLocaleString('es-CO', {dateStyle:'medium', timeStyle:'short'}); }
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+async function checkSession(){
+  const { data } = await supa.auth.getSession();
+  if (data.session) showApp(); else showLogin();
+}
+function showLogin(){ document.getElementById('loginView').style.display='block'; document.getElementById('appShell').style.display='none'; }
+function showApp(){
+  document.getElementById('loginView').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  loadResumen(); loadVinculacion(); loadMensajes(); loadProyectos(); loadActualidad(); loadOrganizaciones(); loadGaleria();
+}
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn'); const err = document.getElementById('loginError');
+  err.style.display = 'none'; btn.disabled = true; btn.textContent = 'Entrando...';
+  const { error } = await supa.auth.signInWithPassword({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (error) { err.style.display = 'block'; return; }
+  showApp();
+});
+document.getElementById('logoutBtn').addEventListener('click', async () => { await supa.auth.signOut(); showLogin(); });
+
+document.querySelectorAll('#sideNav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#sideNav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+  });
+});
+
+async function countRows(table){
+  const { count } = await supa.from(table).select('*', {count:'exact', head:true});
+  return count || 0;
+}
+async function loadResumen(){
+  const [vinc, msj, proy, not, org] = await Promise.all([
+    supa.from('afiliaciones').select('estado'),
+    supa.from('contactos').select('estado'),
+    countRows('proyectos'), countRows('noticias'), countRows('organizaciones')
+  ]);
+  const { data: galFiles } = await supa.storage.from(GALLERY_BUCKET).list('galeria', {limit:1000});
+  const galCount = (galFiles||[]).filter(f => f.name).length;
+
+  const vincData = vinc.data || [];
+  const msjData = msj.data || [];
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="num">${vincData.length}</div><div class="lbl">Solicitudes de vinculación</div></div>
+    <div class="stat-card"><div class="num">${msjData.length}</div><div class="lbl">Mensajes de contacto</div></div>
+    <div class="stat-card"><div class="num">${proy}</div><div class="lbl">Proyectos</div></div>
+    <div class="stat-card"><div class="num">${not}</div><div class="lbl">Publicaciones de actualidad</div></div>
+    <div class="stat-card"><div class="num">${org}</div><div class="lbl">Organizaciones vinculadas</div></div>
+    <div class="stat-card"><div class="num">${galCount}</div><div class="lbl">Fotos en galería</div></div>
+  `;
+
+  function breakdown(id, data, states){
+    const counts = {}; states.forEach(s => counts[s] = 0);
+    data.forEach(r => { counts[r.estado] = (counts[r.estado]||0) + 1; });
+    document.getElementById(id).innerHTML = '<h3>' + document.getElementById(id).querySelector('h3').textContent + '</h3>' +
+      states.map(s => `<div class="breakdown-row"><span>${s}</span><strong>${counts[s]||0}</strong></div>`).join('');
+  }
+  breakdown('breakdownVinculacion', vincData, ['pendiente','en seguimiento','en espera','aceptado','rechazado']);
+  breakdown('breakdownMensajes', msjData, ['nuevo','contactado']);
+}
+
+async function loadVinculacion(){
+  const panel = document.getElementById('listVinculacion');
+  const { data, error } = await supa.from('afiliaciones').select('*').order('fecha_solicitud', {ascending:false});
+  if (error || !data || !data.length){ panel.innerHTML = '<div class="empty">No hay solicitudes de vinculación todavía.</div>'; return; }
+  panel.innerHTML = '';
+  data.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-head">
+        <div><h3>${esc(r.nombre)||'Sin nombre'}</h3><div class="date">${fmtDate(r.fecha_solicitud)}</div></div>
+        <span class="badge ${slug(r.estado)}">${esc(r.estado)||'pendiente'}</span>
+      </div>
+      <div class="detail-grid">
+        <div><span class="lbl">Documento</span>${esc(r.tipo_documento)||'—'} ${esc(r.numero_documento)||''}</div>
+        <div><span class="lbl">Fecha de nacimiento</span>${r.fecha_nacimiento||'—'}</div>
+        <div><span class="lbl">Teléfono</span>${esc(r.telefono)||'—'}</div>
+        <div><span class="lbl">Correo</span>${esc(r.correo)||'—'}</div>
+        <div><span class="lbl">Ubicación</span>${esc(r.municipio)||''}, ${esc(r.departamento)||''}</div>
+        <div><span class="lbl">Dirección</span>${esc(r.direccion)||'—'}</div>
+        <div><span class="lbl">¿Víctima del conflicto?</span>${esc(r.es_victima)||'—'}</div>
+        <div><span class="lbl">¿Registrado en RUV?</span>${esc(r.registro_ruv)||'—'}</div>
+      </div>
+      <div class="msg-box"><strong>Motivo:</strong> ${esc(r.motivo_afiliacion)||'—'}</div>
+      ${r.acompanamiento ? `<div class="msg-box"><strong>Acompañamiento buscado:</strong> ${esc(r.acompanamiento)}</div>` : ''}
+      <div class="action-row">
+        <select data-id="${r.id}" class="est-vinc">
+          <option value="pendiente" ${r.estado==='pendiente'?'selected':''}>Pendiente</option>
+          <option value="en seguimiento" ${r.estado==='en seguimiento'?'selected':''}>En seguimiento</option>
+          <option value="en espera" ${r.estado==='en espera'?'selected':''}>En espera</option>
+          <option value="aceptado" ${r.estado==='aceptado'?'selected':''}>Aceptado</option>
+          <option value="rechazado" ${r.estado==='rechazado'?'selected':''}>Rechazado</option>
+        </select>
+        <button class="btn btn-blue save-vinc" data-id="${r.id}">Guardar</button>
+        <button class="btn btn-danger del-vinc" data-id="${r.id}">Eliminar</button>
+      </div>
+    `;
+    panel.appendChild(card);
+  });
+  panel.querySelectorAll('.save-vinc').forEach(btn => btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const val = panel.querySelector(`.est-vinc[data-id="${id}"]`).value;
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    await supa.from('afiliaciones').update({estado: val}).eq('id', id);
+    toast('Estado actualizado'); loadVinculacion(); loadResumen();
+  }));
+  panel.querySelectorAll('.del-vinc').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('¿Eliminar esta solicitud definitivamente?')) return;
+    await supa.from('afiliaciones').delete().eq('id', btn.dataset.id);
+    toast('Solicitud eliminada'); loadVinculacion(); loadResumen();
+  }));
+}
+
+async function loadMensajes(){
+  const panel = document.getElementById('listMensajes');
+  const { data, error } = await supa.from('contactos').select('*').order('fecha', {ascending:false});
+  if (error || !data || !data.length){ panel.innerHTML = '<div class="empty">No hay mensajes todavía.</div>'; return; }
+  panel.innerHTML = '';
+  data.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-head">
+        <div><h3>${esc(r.nombre)||'Sin nombre'}</h3><div class="date">${fmtDate(r.fecha)}</div></div>
+        <span class="badge ${slug(r.estado)}">${esc(r.estado)||'nuevo'}</span>
+      </div>
+      <div class="detail-grid">
+        <div><span class="lbl">Correo</span>${esc(r.correo)||'—'}</div>
+        <div><span class="lbl">Teléfono</span>${esc(r.telefono)||'—'}</div>
+      </div>
+      <div class="msg-box">${esc(r.mensaje)||'—'}</div>
+      <div class="action-row">
+        <select data-id="${r.id}" class="est-msg">
+          <option value="nuevo" ${r.estado==='nuevo'?'selected':''}>Nuevo</option>
+          <option value="contactado" ${r.estado==='contactado'?'selected':''}>Contactado</option>
+        </select>
+        <button class="btn btn-blue save-msg" data-id="${r.id}">Guardar</button>
+        <button class="btn btn-danger del-msg" data-id="${r.id}">Eliminar</button>
+      </div>
+    `;
+    panel.appendChild(card);
+  });
+  panel.querySelectorAll('.save-msg').forEach(btn => btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const val = panel.querySelector(`.est-msg[data-id="${id}"]`).value;
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    await supa.from('contactos').update({estado: val}).eq('id', id);
+    toast('Estado actualizado'); loadMensajes(); loadResumen();
+  }));
+  panel.querySelectorAll('.del-msg').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('¿Eliminar este mensaje definitivamente?')) return;
+    await supa.from('contactos').delete().eq('id', btn.dataset.id);
+    toast('Mensaje eliminado'); loadMensajes(); loadResumen();
+  }));
+}
+
+async function uploadImage(file, folder){
+  if (!file) return null;
+  const safeName = Date.now() + '-' + Math.random().toString(36).slice(2,8) + '-' + file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_');
+  const path = folder + '/' + safeName;
+  const { error } = await supa.storage.from(GALLERY_BUCKET).upload(path, file, {cacheControl:'3600', upsert:false});
+  if (error) { toast('Error subiendo la imagen'); return null; }
+  const { data } = supa.storage.from(GALLERY_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function renderProyectosForm(){
+  document.getElementById('formProyectos').innerHTML = `
+    <div class="form-card">
+      <h3>Nuevo proyecto</h3>
+      <div class="form-row2">
+        <div class="field"><label>Nombre</label><input type="text" id="p_nombre" required></div>
+        <div class="field"><label>Ubicación</label><input type="text" id="p_ubicacion"></div>
+      </div>
+      <div class="form-row2">
+        <div class="field"><label>Fecha</label><input type="date" id="p_fecha"></div>
+        <div class="field"><label>Estado</label>
+          <select id="p_estado"><option>Planeado</option><option>En curso</option><option>Finalizado</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Descripción</label><textarea id="p_descripcion" rows="2"></textarea></div>
+      <div class="field"><label>Objetivo</label><textarea id="p_objetivo" rows="2"></textarea></div>
+      <div class="field"><label>Foto (opcional)</label><input type="file" id="p_imagen" accept="image/*"></div>
+      <button class="btn btn-gold" id="p_submit">Crear proyecto</button>
+    </div>
+  `;
+  document.getElementById('p_submit').addEventListener('click', async () => {
+    const btn = document.getElementById('p_submit');
+    const nombre = document.getElementById('p_nombre').value.trim();
+    if (!nombre) { toast('El nombre es obligatorio'); return; }
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const file = document.getElementById('p_imagen').files[0];
+    const imagen_url = await uploadImage(file, 'proyectos');
+    await supa.from('proyectos').insert([{
+      nombre, ubicacion: document.getElementById('p_ubicacion').value,
+      fecha: document.getElementById('p_fecha').value || null,
+      estado: document.getElementById('p_estado').value,
+      descripcion: document.getElementById('p_descripcion').value,
+      objetivo: document.getElementById('p_objetivo').value,
+      imagen_url
+    }]);
+    btn.disabled = false; btn.textContent = 'Crear proyecto';
+    toast('Proyecto creado'); renderProyectosForm(); loadProyectos(); loadResumen();
+  });
+}
+async function loadProyectos(){
+  renderProyectosForm();
+  const panel = document.getElementById('listProyectos');
+  const { data, error } = await supa.from('proyectos').select('*').order('created_at', {ascending:false});
+  if (error || !data || !data.length){ panel.innerHTML = '<div class="empty">Todavía no hay proyectos creados.</div>'; return; }
+  panel.innerHTML = '';
+  data.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      ${r.imagen_url ? `<img class="thumb" src="${r.imagen_url}" alt="${esc(r.nombre)}">` : ''}
+      <div class="card-head"><h3>${esc(r.nombre)}</h3><span class="badge ${slug(r.estado)}">${esc(r.estado)||'—'}</span></div>
+      <div class="detail-grid">
+        <div><span class="lbl">Ubicación</span>${esc(r.ubicacion)||'—'}</div>
+        <div><span class="lbl">Fecha</span>${r.fecha||'—'}</div>
+      </div>
+      ${r.descripcion ? `<div class="msg-box"><strong>Descripción:</strong> ${esc(r.descripcion)}</div>` : ''}
+      ${r.objetivo ? `<div class="msg-box"><strong>Objetivo:</strong> ${esc(r.objetivo)}</div>` : ''}
+      <div class="action-row"><button class="btn btn-danger del-proy" data-id="${r.id}">Eliminar</button></div>
+    `;
+    panel.appendChild(card);
+  });
+  panel.querySelectorAll('.del-proy').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('¿Eliminar este proyecto?')) return;
+    await supa.from('proyectos').delete().eq('id', btn.dataset.id);
+    toast('Proyecto eliminado'); loadProyectos(); loadResumen();
+  }));
+}
+
+function renderActualidadForm(){
+  document.getElementById('formActualidad').innerHTML = `
+    <div class="form-card">
+      <h3>Nueva publicación</h3>
+      <div class="form-row2">
+        <div class="field"><label>Título</label><input type="text" id="n_titulo" required></div>
+        <div class="field"><label>Categoría</label><input type="text" id="n_categoria" placeholder="Noticia, jornada, evento…"></div>
+      </div>
+      <div class="form-row2">
+        <div class="field"><label>Fecha</label><input type="date" id="n_fecha"></div>
+        <div class="field"><label>Estado</label><select id="n_estado"><option>Publicado</option><option>Borrador</option></select></div>
+      </div>
+      <div class="field"><label>Contenido</label><textarea id="n_contenido" rows="3"></textarea></div>
+      <div class="field"><label>Foto (opcional)</label><input type="file" id="n_imagen" accept="image/*"></div>
+      <button class="btn btn-gold" id="n_submit">Publicar</button>
+    </div>
+  `;
+  document.getElementById('n_submit').addEventListener('click', async () => {
+    const btn = document.getElementById('n_submit');
+    const titulo = document.getElementById('n_titulo').value.trim();
+    if (!titulo) { toast('El título es obligatorio'); return; }
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const file = document.getElementById('n_imagen').files[0];
+    const imagen_url = await uploadImage(file, 'noticias');
+    await supa.from('noticias').insert([{
+      titulo, categoria: document.getElementById('n_categoria').value,
+      fecha: document.getElementById('n_fecha').value || null,
+      estado: document.getElementById('n_estado').value,
+      contenido: document.getElementById('n_contenido').value,
+      imagen_url
+    }]);
+    btn.disabled = false; btn.textContent = 'Publicar';
+    toast('Publicación creada'); renderActualidadForm(); loadActualidad(); loadResumen();
+  });
+}
+async function loadActualidad(){
+  renderActualidadForm();
+  const panel = document.getElementById('listActualidad');
+  const { data, error } = await supa.from('noticias').select('*').order('created_at', {ascending:false});
+  if (error || !data || !data.length){ panel.innerHTML = '<div class="empty">Todavía no hay publicaciones.</div>'; return; }
+  panel.innerHTML = '';
+  data.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      ${r.imagen_url ? `<img class="thumb" src="${r.imagen_url}" alt="${esc(r.titulo)}">` : ''}
+      <div class="card-head"><h3>${esc(r.titulo)}</h3><span class="badge ${slug(r.estado)}">${esc(r.estado)||'—'}</span></div>
+      <div class="detail-grid">
+        <div><span class="lbl">Categoría</span>${esc(r.categoria)||'—'}</div>
+        <div><span class="lbl">Fecha</span>${r.fecha||'—'}</div>
+      </div>
+      ${r.contenido ? `<div class="msg-box">${esc(r.contenido)}</div>` : ''}
+      <div class="action-row"><button class="btn btn-danger del-not" data-id="${r.id}">Eliminar</button></div>
+    `;
+    panel.appendChild(card);
+  });
+  panel.querySelectorAll('.del-not').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('¿Eliminar esta publicación?')) return;
+    await supa.from('noticias').delete().eq('id', btn.dataset.id);
+    toast('Publicación eliminada'); loadActualidad(); loadResumen();
+  }));
+}
+
+function renderOrganizacionesForm(){
+  document.getElementById('formOrganizaciones').innerHTML = `
+    <div class="form-card">
+      <h3>Nueva organización</h3>
+      <div class="form-row2">
+        <div class="field"><label>Nombre</label><input type="text" id="o_nombre" required></div>
+        <div class="field"><label>Sitio web (opcional)</label><input type="text" id="o_sitio"></div>
+      </div>
+      <div class="field"><label>Descripción</label><textarea id="o_descripcion" rows="2"></textarea></div>
+      <div class="field"><label>Logo (opcional)</label><input type="file" id="o_logo" accept="image/*"></div>
+      <button class="btn btn-gold" id="o_submit">Agregar organización</button>
+    </div>
+  `;
+  document.getElementById('o_submit').addEventListener('click', async () => {
+    const btn = document.getElementById('o_submit');
+    const nombre = document.getElementById('o_nombre').value.trim();
+    if (!nombre) { toast('El nombre es obligatorio'); return; }
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const file = document.getElementById('o_logo').files[0];
+    const logo_url = await uploadImage(file, 'organizaciones');
+    await supa.from('organizaciones').insert([{
+      nombre, sitio_web: document.getElementById('o_sitio').value,
+      descripcion: document.getElementById('o_descripcion').value,
+      logo_url
+    }]);
+    btn.disabled = false; btn.textContent = 'Agregar organización';
+    toast('Organización agregada'); renderOrganizacionesForm(); loadOrganizaciones(); loadResumen();
+  });
+}
+async function loadOrganizaciones(){
+  renderOrganizacionesForm();
+  const panel = document.getElementById('listOrganizaciones');
+  const { data, error } = await supa.from('organizaciones').select('*').order('created_at', {ascending:false});
+  if (error || !data || !data.length){ panel.innerHTML = '<div class="empty">Todavía no hay organizaciones registradas.</div>'; return; }
+  panel.innerHTML = '';
+  data.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      ${r.logo_url ? `<img class="thumb" style="height:90px;object-fit:contain;background:#fff;" src="${r.logo_url}" alt="${esc(r.nombre)}">` : ''}
+      <div class="card-head"><h3>${esc(r.nombre)}</h3></div>
+      ${r.descripcion ? `<div class="msg-box">${esc(r.descripcion)}</div>` : ''}
+      ${r.sitio_web ? `<div style="margin-top:8px;font-size:13px;"><a href="${esc(r.sitio_web)}" target="_blank" style="color:var(--blue);font-weight:600;">${esc(r.sitio_web)}</a></div>` : ''}
+      <div class="action-row"><button class="btn btn-danger del-org" data-id="${r.id}">Eliminar</button></div>
+    `;
+    panel.appendChild(card);
+  });
+  panel.querySelectorAll('.del-org').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('¿Eliminar esta organización?')) return;
+    await supa.from('organizaciones').delete().eq('id', btn.dataset.id);
+    toast('Organización eliminada'); loadOrganizaciones(); loadResumen();
+  }));
+}
+
+const galeriaDropzone = document.getElementById('galeriaDropzone');
+const galeriaFileInput = document.getElementById('galeriaFileInput');
+galeriaDropzone.addEventListener('click', () => galeriaFileInput.click());
+galeriaDropzone.addEventListener('dragover', e => { e.preventDefault(); galeriaDropzone.style.borderColor = 'var(--blue)'; });
+galeriaDropzone.addEventListener('dragleave', () => { galeriaDropzone.style.borderColor = ''; });
+galeriaDropzone.addEventListener('drop', e => { e.preventDefault(); galeriaDropzone.style.borderColor = ''; handleGaleriaFiles(e.dataTransfer.files); });
+galeriaFileInput.addEventListener('change', () => handleGaleriaFiles(galeriaFileInput.files));
+
+async function handleGaleriaFiles(fileList){
+  const files = Array.from(fileList);
+  if (!files.length) return;
+  toast('Subiendo ' + files.length + ' foto(s)...');
+  for (const file of files) { await uploadImage(file, 'galeria'); }
+  toast('Fotos subidas correctamente');
+  galeriaFileInput.value = '';
+  loadGaleria(); loadResumen();
+}
+async function loadGaleria(){
+  const grid = document.getElementById('galeriaGrid');
+  const { data, error } = await supa.storage.from(GALLERY_BUCKET).list('galeria', {sortBy:{column:'created_at',order:'desc'}});
+  if (error || !data || !data.filter(f=>f.name).length){ grid.innerHTML = '<div class="empty">Todavía no has subido fotos a la galería.</div>'; return; }
+  grid.innerHTML = '';
+  data.filter(f => f.name).forEach(f => {
+    const { data: pub } = supa.storage.from(GALLERY_BUCKET).getPublicUrl('galeria/' + f.name);
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.style.padding = '10px';
+    card.innerHTML = `<img class="thumb" style="height:100px;margin-bottom:8px;" src="${pub.publicUrl}"><button class="btn btn-danger" style="width:100%;font-size:12px;padding:8px;">Eliminar</button>`;
+    card.querySelector('button').addEventListener('click', async () => {
+      if (!confirm('¿Eliminar esta foto?')) return;
+      await supa.storage.from(GALLERY_BUCKET).remove(['galeria/' + f.name]);
+      loadGaleria(); loadResumen();
+    });
+    grid.appendChild(card);
+  });
+}
+
+checkSession();
+</script>
+</body>
+</html>
